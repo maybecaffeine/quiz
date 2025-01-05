@@ -15,7 +15,7 @@ import Button from '../ui/Button'
 
 // Styled Components for the form
 const FormContainer = styled.div`
-  width: 100%;
+  width: 50%;
   margin-top: 20px;
 `
 
