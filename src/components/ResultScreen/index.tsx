@@ -131,7 +131,10 @@ const ResultScreen: FC = () => {
         <Logo />
       </LogoContainer>
       <InnerContainer>
-        <ResultOverview result={result} />
+        <ResultOverview result={result} userData={{
+          name: '',
+          quizCompletionDate: ''
+        }}  />
         {result.map(
           (
             {
@@ -158,7 +161,7 @@ const ResultScreen: FC = () => {
                     {image && <QuizImage image={image} />}
                     <ul>
                       {choices.map((ans: string, index: number) => {
-                        // Convert index to alphabet character
+                        
                         const label = String.fromCharCode(65 + index)
                         const correct =
                           selectedAnswer.includes(ans) && correctAnswers.includes(ans)
@@ -173,7 +176,7 @@ const ResultScreen: FC = () => {
                         )
                       })}
                     </ul>
-                    {/* only show if the answer is wrong */}
+                  
                     {!isMatch && (
                       <RightAnswer correctAnswers={correctAnswers} choices={choices} />
                     )}

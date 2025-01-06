@@ -28,9 +28,11 @@ export type QuizContextTypes = {
   endTime: number
   setEndTime: (type: number) => void
   quizDetails: {
+    name: any
     totalQuestions: number
     totalScore: number
     totalTime: number
     selectedQuizTopic: string
+    
   }
 }

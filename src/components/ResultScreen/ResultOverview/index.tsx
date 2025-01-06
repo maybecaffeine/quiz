@@ -1,11 +1,12 @@
 import { FC } from "react";
 import styled from "styled-components";
-
 import { useQuiz } from "../../../context/QuizContext";
 import { device } from "../../../styles/BreakPoints";
 import { HighlightedText } from "../../../styles/Global";
 import { convertSeconds } from "../../../utils/helpers";
 import { Result } from "../../../types";
+import jsPDF from "jspdf";
+import baseUrl from "../../../utils/baseUrl"; // Corrected import path
 
 const ResultOverviewStyle = styled.div`
   text-align: center;
@@ -57,13 +58,26 @@ const ActionButtons = styled.div`
   .btn-blue:hover {
     background-color: #005582;
   }
+
+  .btn-red {
+    background-color: #dc3545;
+    transition: background-color 0.3s;
+  }
+
+  .btn-red:hover {
+    background-color: #c82333;
+  }
 `;
 
 interface ResultOverviewProps {
   result: Result[];
+  userData: {
+    name: string;
+    quizCompletionDate: string;
+  };
 }
 
-const ResultOverview: FC<ResultOverviewProps> = ({ result }) => {
+const ResultOverview: FC<ResultOverviewProps> = ({ result, userData }) => {
   const { quizDetails, endTime } = useQuiz();
 
   const totalQuestionAttempted = result.length;
@@ -75,24 +89,42 @@ const ResultOverview: FC<ResultOverviewProps> = ({ result }) => {
   const calculateStatus =
     (obtainedScore / quizDetails.totalScore) * 100 >= 60 ? "Passed" : "Failed";
 
-  // Handles certificate download
   const handleDownloadCertificate = () => {
-    const certificateURL = "/path-to-certificate/certificate.pdf"; // Replace with the actual URL
-    const link = document.createElement("a");
-    link.href = certificateURL;
-    link.download = "Certificate.pdf";
-    link.click();
+    const pdf = new jsPDF("l", "pt", "a4");
+
+    pdf.setFontSize(24);
+    pdf.text("Certificate of Completion", 200, 150);
+
+    pdf.setFontSize(18);
+    pdf.text(`This certificate is awarded to: ${userData.name}`, 50, 180);
+    pdf.text("For successfully completing the", 50, 210);
+    pdf.text("The Lube Buzz Quiz 2024", 50, 240);
+
+    pdf.setFontSize(14);
+    pdf.text(`Score: ${obtainedScore} / ${quizDetails.totalScore}`, 50, 270);
+    pdf.text(
+      `Status: ${calculateStatus}`,
+      50,
+      300
+    );
+    pdf.text(
+      `Date: ${new Date(userData.quizCompletionDate).toLocaleDateString()}`,
+      50,
+      330
+    );
+
+    pdf.save(`${userData.name}_certificate.pdf`);
   };
 
-  // Handles LinkedIn sharing
   const handleShareOnLinkedIn = () => {
-    const quizURL = "https://example.com/quiz"; // Replace with your actual quiz URL
     const quizTitle = "The Lube Buzz Quiz 2024";
-    const linkedInShareURL = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-      quizURL
-    )}&title=${encodeURIComponent(quizTitle)}`;
+    const linkedInShareURL = `https://www.linkedin.com/oauth/v2/authorization?client_id=${process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID}&redirect_uri=${baseUrl}/api/linkedin/generate-accesstoken&response_type=code&scope=r_liteprofile%20r_emailaddress%20w_member_social`;
 
     window.open(linkedInShareURL, "_blank");
+  };
+
+  const handleRetry = () => {
+    window.location.reload();
   };
 
   return (
@@ -108,20 +140,40 @@ const ResultOverview: FC<ResultOverviewProps> = ({ result }) => {
         {quizDetails.totalScore}
       </p>
       <p>
-        Time Spent:<HighlightedText> {convertSeconds(endTime)} </HighlightedText>
+        Time Spent:
+        <HighlightedText> {convertSeconds(endTime)} </HighlightedText>
       </p>
       <p>
-        Status:<HighlightedText> {calculateStatus}</HighlightedText>
+        Status:
+        <HighlightedText
+          style={{
+            color:
+              calculateStatus === "Failed"
+                ? "#dc3545"
+                : calculateStatus === "Passed"
+                ? "#28a745"
+                : "inherit",
+          }}
+        >
+          {calculateStatus}
+        </HighlightedText>
       </p>
 
-      {/* Add buttons for download and sharing */}
       <ActionButtons>
-        <button className="btn btn-green" onClick={handleDownloadCertificate}>
-          Download My Certificate
-        </button>
-        <button className="btn btn-blue" onClick={handleShareOnLinkedIn}>
-          Share on LinkedIn
-        </button>
+        {calculateStatus === "Passed" ? (
+          <>
+            <button className="btn btn-green" onClick={handleDownloadCertificate}>
+              Download My Certificate
+            </button>
+            <button className="btn btn-blue" onClick={handleShareOnLinkedIn}>
+              Share on LinkedIn
+            </button>
+          </>
+        ) : (
+          <button className="btn btn-red" onClick={handleRetry}>
+            Retry
+          </button>
+        )}
       </ActionButtons>
     </ResultOverviewStyle>
   );
