@@ -5,8 +5,6 @@ import { device } from "../../../styles/BreakPoints";
 import { HighlightedText } from "../../../styles/Global";
 import { convertSeconds } from "../../../utils/helpers";
 import { Result } from "../../../types";
-import jsPDF from "jspdf";
-import baseUrl from "../../../utils/baseUrl"; // Corrected import path
 
 const ResultOverviewStyle = styled.div`
   text-align: center;
@@ -89,38 +87,65 @@ const ResultOverview: FC<ResultOverviewProps> = ({ result, userData }) => {
   const calculateStatus =
     (obtainedScore / quizDetails.totalScore) * 100 >= 60 ? "Passed" : "Failed";
 
-  const handleDownloadCertificate = () => {
-    const pdf = new jsPDF("l", "pt", "a4");
+  const handleDownloadCertificate = async () => {
+    try {
+      const response = await fetch(`/api/download?name=${userData.name}&percent=${obtainedScore}`, {
+        method: "GET",
+      });
 
-    pdf.setFontSize(24);
-    pdf.text("Certificate of Completion", 200, 150);
+      if (!response.ok) {
+        throw new Error("Failed to generate certificate.");
+      }
 
-    pdf.setFontSize(18);
-    pdf.text(`This certificate is awarded to: ${userData.name}`, 50, 180);
-    pdf.text("For successfully completing the", 50, 210);
-    pdf.text("The Lube Buzz Quiz 2024", 50, 240);
-
-    pdf.setFontSize(14);
-    pdf.text(`Score: ${obtainedScore} / ${quizDetails.totalScore}`, 50, 270);
-    pdf.text(
-      `Status: ${calculateStatus}`,
-      50,
-      300
-    );
-    pdf.text(
-      `Date: ${new Date(userData.quizCompletionDate).toLocaleDateString()}`,
-      50,
-      330
-    );
-
-    pdf.save(`${userData.name}_certificate.pdf`);
+      const { fileUrl } = await response.json();
+      // Create an invisible link and trigger the download
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.download = `${userData.name}_certificate.pdf`;
+      link.click();
+    } catch (error) {
+      console.error("Error downloading certificate:", error);
+      alert("Failed to download certificate.");
+    }
   };
 
-  const handleShareOnLinkedIn = () => {
-    const quizTitle = "The Lube Buzz Quiz 2024";
-    const linkedInShareURL = `https://www.linkedin.com/oauth/v2/authorization?client_id=${process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID}&redirect_uri=${baseUrl}/api/linkedin/generate-accesstoken&response_type=code&scope=r_liteprofile%20r_emailaddress%20w_member_social`;
+  const handleShareOnLinkedIn = async () => {
+    try {
+      const response = await fetch("/api/linkedin/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accessToken: sessionStorage.getItem("linkedInAccessToken"), // Token should be securely managed
+          message: `I just completed The Lube Buzz Quiz 2024! I scored ${obtainedScore}/${quizDetails.totalScore} and achieved the status of ${calculateStatus}. 🎉`,
+        }),
+      });
 
-    window.open(linkedInShareURL, "_blank");
+      // Check if response is OK
+      if (!response.ok) {
+        const textResponse = await response.text(); // Read the response as text
+        throw new Error(`Error sharing on LinkedIn: ${textResponse}`);
+      }
+
+      // Try to parse JSON response if available
+      try {
+        const data = await response.json();
+        alert("Successfully shared on LinkedIn!");
+      } catch (jsonError) {
+        // If JSON parsing fails, log the error and alert the user
+        console.error("Error parsing JSON response:", jsonError);
+        alert("Failed to share on LinkedIn. Please try again later.");
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error sharing on LinkedIn:", error.message);
+        alert(`Error sharing on LinkedIn: ${error.message}`);
+      } else {
+        console.error("An unknown error occurred.");
+        alert("An unknown error occurred while sharing on LinkedIn.");
+      }
+    }
   };
 
   const handleRetry = () => {
