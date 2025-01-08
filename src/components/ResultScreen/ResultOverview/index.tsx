@@ -118,7 +118,9 @@ const ResultOverview: FC<ResultOverviewProps> = ({ result, userData }) => {
 
   const handleShareOnLinkedIn = () => {
     const quizTitle = "The Lube Buzz Quiz 2024";
-    const linkedInShareURL = `https://www.linkedin.com/oauth/v2/authorization?client_id=${process.env.NEXT_PUBLIC_LINKEDIN_CLIENT_ID}&redirect_uri=${baseUrl}/api/linkedin/generate-accesstoken&response_type=code&scope=r_liteprofile%20r_emailaddress%20w_member_social`;
+    const linkedInShareURL = `https://www.linkedin.com/oauth/v2/authorization?client_id=862g0a178cd01s&redirect_uri=http://localhost:3004/linkedin/callback&response_type=code&scope=r_liteprofile%20r_emailaddress%20w_member_social`;
+
+console.log(linkedInShareURL);
 
     window.open(linkedInShareURL, "_blank");
   };
